@@ -1121,7 +1121,7 @@ var snow;
     })();
     snow_1.Snow = Snow;
     function start(canvas) {
-        var gl = new GL(canvas), snow = new Snow(gl, 500), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
+        var gl = new GL(canvas), snow = new Snow(gl, 750), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
             window["webkitRequestAnimationFrame"] || window.msRequestAnimationFrame || setTimeout, startTime = new Date();
         function resize() {
             var displayWidth = window.innerWidth, displayHeight = window.innerHeight;
