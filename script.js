@@ -40,6 +40,7 @@ var may;
         var GL = (function () {
             function GL(source, settings) {
                 if (settings === void 0) { settings = {}; }
+                this.settingsCache = {};
                 if (source instanceof HTMLCanvasElement) {
                     this.handle = (source.getContext("webgl", settings) || source.getContext("experimental-webgl", settings));
                     if (!this.handle) {
@@ -266,12 +267,11 @@ var may;
                 return this;
             };
             Settings.prototype.use = function (callback) {
-                var gl, i, oldValues, result, v, _ref;
-                gl = this.gl.handle;
-                oldValues = {};
+                var gl = this.gl.handle, i, oldValues = {}, result, settingsCache = (this.gl.settingsCache);
                 for (i in this.v) {
-                    v = this.v[i];
-                    oldValues[i] = Settings.fields[i].get(gl);
+                    var v = this.v[i];
+                    oldValues[i] = settingsCache.hasOwnProperty(i) ? settingsCache[i] : Settings.fields[i].get(gl);
+                    settingsCache[i] = v;
                     Settings.fields[i].set(gl, v);
                 }
                 try {
@@ -279,8 +279,9 @@ var may;
                 }
                 finally {
                     for (i in oldValues) {
-                        v = oldValues[i];
+                        var v = oldValues[i];
                         Settings.fields[i].set(gl, v);
+                        settingsCache[i] = v;
                     }
                 }
                 return result;
@@ -907,17 +908,19 @@ var may;
             function Uniforms(program) {
                 this.program = program;
                 this.info = {};
+                this.locations = {};
                 this.gl = program.gl;
                 var glh = this.gl.handle;
                 var uniformsCount = glh.getProgramParameter(program.handle, glh.ACTIVE_UNIFORMS);
                 for (var i = 0; i < uniformsCount; i++) {
                     var uniform = glh.getActiveUniform(program.handle, i);
                     this.info[uniform.name] = uniform;
+                    this.locations[uniform.name] = this.gl.handle.getUniformLocation(this.program.handle, uniform.name);
                 }
             }
             Uniforms.prototype.append = function (name, value) {
-                var gl = this.gl.handle, location = gl.getUniformLocation(this.program.handle, name), info = this.info[name];
-                if (!info) {
+                var gl = this.gl.handle, location = this.locations.hasOwnProperty(name) ? this.locations[name] : undefined, info = this.info[name];
+                if (!info || location == undefined) {
                     console.warn("Uniform '" + name + "' not found");
                     return this;
                 }
@@ -1020,9 +1023,38 @@ var snow;
     var GL = may.webgl.GL;
     var BlendEquation = may.webgl.BlendEquation;
     var BlendFunction = may.webgl.BlendFunction;
+    var Background = (function () {
+        function Background(gl) {
+            this.gl = gl;
+            this.program = gl.program(snow_1.Shaders["background.v"], snow_1.Shaders["background.f"]);
+            this.attributes = this.program.attributes();
+            this.uniforms = this.program.uniforms();
+            this.attributes.append("a_point", [
+                -1, -1, 1, -1, -1, 1,
+                1, -1, 1, 1, -1, 1
+            ]).build().apply();
+        }
+        Background.prototype.draw = function () {
+            var _this = this;
+            this.gl.settings()
+                .disableBlend()
+                .disableDepthTest()
+                .program(this.program)
+                .attributes(this.attributes)
+                .use(function () {
+                _this.attributes.apply();
+                _this.gl.drawTrianglesArrays(6);
+            });
+        };
+        Background.prototype.dispose = function () {
+            this.attributes.dispose();
+            this.program.dispose();
+        };
+        return Background;
+    })();
+    snow_1.Background = Background;
     var Snow = (function () {
         function Snow(gl, count) {
-            // Stars
             this.gl = gl;
             this.count = count;
             this.triangles = 0;
@@ -1057,12 +1089,6 @@ var snow;
                 .staticDraw()
                 .data(indexes)
                 .build();
-            // Background
-            this.bgProgram = gl.program(snow_1.Shaders["background.v"], snow_1.Shaders["background.f"]);
-            this.bgAttributes = this.bgProgram.attributes().append("a_point", [
-                -1, -1, 1, -1, -1, 1,
-                1, -1, 1, 1, -1, 1
-            ]).build().apply();
         }
         Snow.prototype.setTime = function (time) {
             this.uniforms.append("u_time", time);
@@ -1074,15 +1100,6 @@ var snow;
         };
         Snow.prototype.draw = function () {
             var _this = this;
-            this.gl.settings()
-                .disableBlend()
-                .disableDepthTest()
-                .program(this.bgProgram)
-                .attributes(this.bgAttributes)
-                .use(function () {
-                _this.bgAttributes.apply();
-                _this.gl.drawTrianglesArrays(6);
-            });
             this.gl.settings()
                 .disableDepthTest()
                 .enableBlend()
@@ -1108,20 +1125,70 @@ var snow;
                 this.indexes.dispose();
                 this.indexes = null;
             }
-            if (this.bgAttributes) {
-                this.bgAttributes.dispose();
-                this.bgAttributes = null;
-            }
-            if (this.bgProgram) {
-                this.bgProgram.dispose();
-                this.bgProgram = null;
-            }
         };
         return Snow;
     })();
     snow_1.Snow = Snow;
+    var Lights = (function () {
+        function Lights(gl, count) {
+            this.gl = gl;
+            this.count = count;
+            this.colors = ["#0d4370", "#015dbf", "#cb91e0", "#000ac9", "#3df4f1", "#ea8aa4", "#39248c",
+                "#7ae26f", "#319cf9", "#f4b0df", "#fcc6b0", "#ec93f9", "#f2b0e4", "#077745", "#e241c5", "#d18e4b", "#41a300",
+                "#42ea3f", "#dc7fef", "#edef58", "#6af2e4", "#41a6c1", "#c5cff9", "#a09af4", "#0e2e72", "#dfffb2", "#ba4303",
+                "#ed0076", "#d7f98e", "#7388e2", "#fc2afc", "#23c481", "#ef708c", "#88e88d", "#59f25e", "#8de27c", "#56a9b7",
+                "#61e547", "#031996", "#efc5aa", "#96e06d", "#0beac1", "#2baa22", "#345b9e", "#4fcc39", "#f4add3", "#7fd861",
+                "#67db86", "#53e2cb", "#c673dd", "#3eaaf2", "#9b003b", "#5a2291", "#dbfc62", "#9bdb6b", "#c96310", "#bc2528",
+                "#f9ef9d", "#53bf11", "#c2d5f9", "#7824c1", "#f4b589", "#e9ed87", "#54ffe8"];
+            this.program = gl.program(snow_1.Shaders["lights.v"], snow_1.Shaders["lights.f"]);
+            this.attributes = this.program.attributes();
+            this.uniforms = this.program.uniforms();
+            var i, colors = [], points = [], radius = [];
+            for (i = 0; i < this.count; i++) {
+                points.push(Math.random() * 2 - 1, Math.random() * 2 - 1);
+                radius.push(Math.random() * 0.18 + 0.02);
+                var color = this.getRandomColor(), r = parseInt(color.substr(1, 2), 16) / 255.0, g = parseInt(color.substr(3, 2), 16) / 255.0, b = parseInt(color.substr(5, 2), 16) / 255.0;
+                colors.push(r, g, b);
+            }
+            this.attributes.append("a_point", points)
+                .append("a_radius", radius)
+                .append("a_color", colors)
+                .build().apply();
+        }
+        Lights.prototype.getRandomColor = function () {
+            return this.colors[Math.floor(Math.random() * this.colors.length)];
+        };
+        Lights.prototype.setViewport = function () {
+            var v = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                v[_i - 0] = arguments[_i];
+            }
+            this.uniforms.append("u_viewport", v);
+            return this;
+        };
+        Lights.prototype.draw = function () {
+            var _this = this;
+            this.gl.settings()
+                .enableBlend()
+                .blendEquation(BlendEquation.ADD)
+                .blendFunction(BlendFunction.SRC_ALPHA, BlendFunction.ONE_MINUS_SRC_ALPHA, BlendFunction.ONE, BlendFunction.ONE)
+                .disableDepthTest()
+                .program(this.program)
+                .attributes(this.attributes)
+                .use(function () {
+                _this.attributes.apply();
+                _this.gl.drawPointsArrays(_this.count);
+            });
+        };
+        Lights.prototype.dispose = function () {
+            this.attributes.dispose();
+            this.program.dispose();
+        };
+        return Lights;
+    })();
+    snow_1.Lights = Lights;
     function start(canvas) {
-        var gl = new GL(canvas), snow = new Snow(gl, 750), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
+        var gl = new GL(canvas), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 150), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
             window["webkitRequestAnimationFrame"] || window.msRequestAnimationFrame || setTimeout, startTime = new Date();
         function resize() {
             var displayWidth = window.innerWidth, displayHeight = window.innerHeight;
@@ -1135,6 +1202,9 @@ var snow;
         window.onresize = resize;
         resize();
         function draw() {
+            background.draw();
+            lights.setViewport(0, 0, canvas.width, canvas.height)
+                .draw();
             snow.setRatio(canvas.width / canvas.height)
                 .setTime(new Date().getTime() - startTime.getTime())
                 .draw();
