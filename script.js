@@ -1146,7 +1146,7 @@ var snow;
             var i, colors = [], points = [], radius = [];
             for (i = 0; i < this.count; i++) {
                 points.push(Math.random() * 2 - 1, Math.random() * 2 - 1);
-                radius.push(Math.random() * 0.18 + 0.02);
+                radius.push(Math.random() * 0.23 + 0.02);
                 var color = this.getRandomColor(), r = parseInt(color.substr(1, 2), 16) / 255.0, g = parseInt(color.substr(3, 2), 16) / 255.0, b = parseInt(color.substr(5, 2), 16) / 255.0;
                 colors.push(r, g, b);
             }
@@ -1188,7 +1188,7 @@ var snow;
     })();
     snow_1.Lights = Lights;
     function start(canvas) {
-        var gl = new GL(canvas), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 150), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
+        var gl = new GL(canvas), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 100), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
             window["webkitRequestAnimationFrame"] || window.msRequestAnimationFrame || setTimeout, startTime = new Date();
         function resize() {
             var displayWidth = window.innerWidth, displayHeight = window.innerHeight;
