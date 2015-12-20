@@ -57,30 +57,25 @@
 		</style>
 	</head>
 	<body onload="snow.start(document.getElementById('canvas'))">
+        <!-- Fb -->
+        <div id="fb-root"></div>
+        <script>(function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = "//connect.facebook.net/ru_RU/sdk.js#xfbml=1&version=v2.5";
+        fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));</script>
+        <!-- /Fb -->
+        
 		<canvas id="canvas"></canvas>
 		<a class="to-source" href="https://github.com/monkin/snow" target="_blank">View Source</a>
         <div class="social">
             
             <div id="vk_like"></div>
             <script type="text/javascript">VK.Widgets.Like("vk_like", {type: "mini", height: 20});</script>
-            
-            <!-- Load Facebook SDK for JavaScript -->
-            <div id="fb-root"></div>
-            <script>(function(d, s, id) {
-            var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) return;
-            js = d.createElement(s); js.id = id;
-            js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1";
-            fjs.parentNode.insertBefore(js, fjs);
-            }(document, 'script', 'facebook-jssdk'));</script>
 
-            <!-- Your like button code -->
-            <div id="fb_like" class="fb-like" 
-                data-href="http://www.your-domain.com/your-page.html" 
-                data-layout="standard" 
-                data-action="like" 
-                data-show-faces="true">
-            </div>
+            <div id="fb_like" class="fb-like" data-href="http://monkin.github.io/snow-release/" data-layout="button_count" data-action="like" data-show-faces="true" data-share="false"></div>
         </div>
 		<!-- Yandex.Metrika counter -->
 		<script type="text/javascript">
