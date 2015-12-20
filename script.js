@@ -1023,6 +1023,7 @@ var snow;
     var GL = may.webgl.GL;
     var BlendEquation = may.webgl.BlendEquation;
     var BlendFunction = may.webgl.BlendFunction;
+    var using = may.using;
     var Mouse = (function () {
         function Mouse() {
             var _this = this;
@@ -1035,7 +1036,6 @@ var snow;
                     e.pageX / window.innerWidth * 2 - 1,
                     -e.pageY / window.innerHeight * 2 + 1
                 ];
-                console.log(JSON.stringify(_this.position) + " => " + JSON.stringify(_this.destination));
             });
         }
         Mouse.prototype.getPosition = function () {
@@ -1087,9 +1087,24 @@ var snow;
     snow_1.Background = Background;
     var Snow = (function () {
         function Snow(gl, count) {
+            var _this = this;
             this.gl = gl;
             this.count = count;
             this.triangles = 0;
+            this.normals = gl.texture()
+                .width(64).height(64)
+                .formatRGB()
+                .filterLinear()
+                .wrapRepeat()
+                .typeByte()
+                .build();
+            using(new Bump(gl, 400), gl.frame(), function (bump, frame) {
+                frame.setColorBuffer(_this.normals).use(function () {
+                    gl.settings().viewport(0, 0, 64, 64).use(function () {
+                        bump.draw();
+                    });
+                });
+            });
             this.program = gl.program(snow_1.Shaders["snow.v"], snow_1.Shaders["snow.f"]);
             var attributes = this.program.attributes(), points = [], // vertexes
             orientation = [], // point position in triangle
@@ -1097,13 +1112,14 @@ var snow;
             indexes = [], offset = 0;
             this.attributes = attributes;
             this.uniforms = this.program.uniforms();
+            this.uniforms.append("u_normals", 0);
             for (var i = 0; i < count; i++) {
-                var rays = 10;
-                star.push(i);
+                var rays = 10, starSeed = Math.random() * 1000;
+                star.push(starSeed);
                 points.push(0, 0);
                 orientation.push(0);
                 for (var ray = 0; ray < rays; ray++) {
-                    star.push(i);
+                    star.push(starSeed);
                     points.push(Math.sin(2 * Math.PI * ray / rays), Math.cos(2 * Math.PI * ray / rays));
                     orientation.push((ray % 2) + 1);
                     indexes.push(offset, offset + ray + 1, offset + 1 + ((ray + 1) % rays));
@@ -1130,6 +1146,10 @@ var snow;
             this.uniforms.append("u_ratio", ratio);
             return this;
         };
+        Snow.prototype.setMousePosition = function (v) {
+            this.uniforms.append("u_mouse", v);
+            return this;
+        };
         Snow.prototype.draw = function () {
             var _this = this;
             this.gl.settings()
@@ -1138,6 +1158,7 @@ var snow;
                 .blendEquation(BlendEquation.ADD)
                 .blendFunction(BlendFunction.SRC_ALPHA, BlendFunction.ONE_MINUS_SRC_ALPHA, BlendFunction.ONE, BlendFunction.ONE)
                 .elementArrayBuffer(this.indexes)
+                .textures([this.normals])
                 .program(this.program)
                 .attributes(this.attributes).use(function () {
                 _this.attributes.apply();
@@ -1156,6 +1177,10 @@ var snow;
             if (this.indexes) {
                 this.indexes.dispose();
                 this.indexes = null;
+            }
+            if (this.normals) {
+                this.normals.dispose();
+                this.normals = null;
             }
         };
         return Snow;
@@ -1223,6 +1248,48 @@ var snow;
         return Lights;
     })();
     snow_1.Lights = Lights;
+    var Bump = (function () {
+        function Bump(gl, count) {
+            this.gl = gl;
+            this.count = count;
+            this.program = gl.program(snow_1.Shaders["bump.v"], snow_1.Shaders["bump.f"]);
+            this.attributes = this.program.attributes();
+            this.uniforms = this.program.uniforms();
+            var points = [], colors = [];
+            for (var i = 0; i < count; i++) {
+                var r = 50 / (i + 50), color = [Math.random(), Math.random(), 0.9], originX = Math.random() * 2 - 1, originY = Math.random() * 2 - 1;
+                for (var j = 0; j < 3; j++) {
+                    colors.push.apply(colors, color);
+                    points.push(originX + (Math.random() * 3 - 1.5) * r);
+                    points.push(originY + (Math.random() * 3 - 1.5) * r);
+                }
+            }
+            this.attributes
+                .append("a_point", points)
+                .append("a_color", colors)
+                .build().apply();
+        }
+        Bump.prototype.draw = function () {
+            var _this = this;
+            this.gl.settings()
+                .disableBlend()
+                .disableDepthTest()
+                .clearColor([0, 0, 1, 1])
+                .program(this.program)
+                .attributes(this.attributes)
+                .use(function () {
+                _this.gl.clearColorBuffer();
+                _this.attributes.apply();
+                _this.gl.drawTrianglesArrays(_this.count * 3);
+            });
+        };
+        Bump.prototype.dispose = function () {
+            this.attributes.dispose();
+            this.program.dispose();
+        };
+        return Bump;
+    })();
+    snow_1.Bump = Bump;
     function start(canvas) {
         var gl = new GL(canvas), mouse = new Mouse(), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 100), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
             window["webkitRequestAnimationFrame"] || window.msRequestAnimationFrame || setTimeout, startTime = new Date();
@@ -1238,9 +1305,10 @@ var snow;
         window.onresize = resize;
         resize();
         function draw() {
+            var mousePosition = mouse.getPosition();
             background.draw();
             lights.setViewport(0, 0, canvas.width, canvas.height)
-                .setMousePosition(mouse.getPosition())
+                .setMousePosition(mousePosition)
                 .draw();
             snow.setRatio(canvas.width / canvas.height)
                 .setTime(new Date().getTime() - startTime.getTime())
