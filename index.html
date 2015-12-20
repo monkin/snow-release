@@ -73,7 +73,10 @@
         <!-- /Fb -->
         
 		<canvas id="canvas"></canvas>
-        <audio type="audio/mpeg" src="audio/Maya_Filipi-Silent_Night.mp3" autoplay loop></audio>
+        <audio autoplay loop>
+            <source src="audio/Maya_Filipi-Silent_Night.ogg" type="audio/ogg; codecs=vorbis"/>
+            <source src="audio/Maya_Filipi-Silent_Night.mp3" type="audio/mpeg"/>
+        </audio>
 		<a class="to-source" href="https://github.com/monkin/snow" target="_blank">View Source</a>
         <div class="social">
             <div id="fb_like" class="fb-like" data-href="http://monkin.github.io/snow-release/" data-layout="button_count" data-action="like" data-show-faces="true" data-share="false"></div>
