@@ -1027,35 +1027,6 @@ var snow;
     var BlendEquation = may.webgl.BlendEquation;
     var BlendFunction = may.webgl.BlendFunction;
     var using = may.using;
-    var Mouse = (function () {
-        function Mouse() {
-            var _this = this;
-            this.destination = [0, 0];
-            this.speed = 10.0;
-            this.position = [0, 0];
-            this.time = new Date().getTime() / 1000;
-            window.addEventListener("mousemove", function (e) {
-                _this.destination = [
-                    e.pageX / window.innerWidth * 2 - 1,
-                    -e.pageY / window.innerHeight * 2 + 1
-                ];
-            });
-        }
-        Mouse.prototype.getPosition = function () {
-            var now = new Date().getTime() / 1000, destination = this.destination, lastTime = this.time, position = this.position, v = [destination[0] - position[0], destination[1] - position[1]], l = Math.sqrt(v[0] * v[0] + v[1] * v[1]), d = this.speed * (now - lastTime);
-            if (d > l) {
-                this.position = this.destination;
-            }
-            else {
-                var c = d / l, shift = [v[0] * c, v[1] * c];
-                this.position = [position[0] + shift[0], position[1] + shift[1]];
-            }
-            this.time = now;
-            return this.position;
-        };
-        return Mouse;
-    })();
-    snow_1.Mouse = Mouse;
     var Background = (function () {
         function Background(gl) {
             this.gl = gl;
@@ -1223,8 +1194,8 @@ var snow;
             this.uniforms.append("u_viewport", v);
             return this;
         };
-        Lights.prototype.setMousePosition = function (v) {
-            this.uniforms.append("u_mouse", v);
+        Lights.prototype.setTime = function (v) {
+            this.uniforms.append("u_time", v);
             return this;
         };
         Lights.prototype.draw = function () {
@@ -1291,7 +1262,7 @@ var snow;
     })();
     snow_1.Bump = Bump;
     function start(canvas) {
-        var gl = new GL(canvas, { antialias: false }), mouse = new Mouse(), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 100), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
+        var gl = new GL(canvas, { antialias: false }), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 100), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
             window["webkitRequestAnimationFrame"] || window.msRequestAnimationFrame || setTimeout, startTime = new Date();
         function resize() {
             var displayWidth = window.innerWidth, displayHeight = window.innerHeight;
@@ -1305,10 +1276,9 @@ var snow;
         window.onresize = resize;
         resize();
         function draw() {
-            var mousePosition = mouse.getPosition();
             background.draw();
             lights.setViewport(0, 0, canvas.width, canvas.height)
-                .setMousePosition(mousePosition)
+                .setTime(new Date().getTime() - startTime.getTime())
                 .draw();
             snow.setRatio(canvas.width / canvas.height)
                 .setTime(new Date().getTime() - startTime.getTime())
