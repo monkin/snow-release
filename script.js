@@ -1346,13 +1346,15 @@ var snow;
         audio.addEventListener("playing", function () {
             setAudioState(true);
         });
-        audioButton.addEventListener("click", function () {
+        audioButton.addEventListener("click", function (e) {
             if (isPlayed) {
                 audio.pause();
             }
             else {
                 audio.play();
             }
+            e.preventDefault && e.preventDefault();
+            e.defaultPrevented = true;
         });
         audio.load();
         if (autoStart) {
