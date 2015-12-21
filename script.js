@@ -1149,10 +1149,6 @@ var snow;
             this.uniforms.append("u_ratio", ratio);
             return this;
         };
-        Snow.prototype.setMousePosition = function (v) {
-            this.uniforms.append("u_mouse", v);
-            return this;
-        };
         Snow.prototype.draw = function () {
             var _this = this;
             this.gl.settings()
@@ -1320,6 +1316,48 @@ var snow;
             requestAnimationFrame(draw);
         }
         requestAnimationFrame(draw);
+        // Audio
+        var audio = document.getElementById("audio"), audioButton = document.getElementById("audio_button"), autoStart = localStorage.getItem("play") !== "false", isPlayed = false;
+        function setAudioState(state) {
+            if (isPlayed !== state) {
+                isPlayed = state;
+                localStorage.setItem("play", state ? "true" : "false");
+                if (state) {
+                    audioButton.classList.remove("audio-off");
+                    audioButton.classList.add("audio-on");
+                }
+                else {
+                    audioButton.classList.remove("audio-on");
+                    audioButton.classList.add("audio-off");
+                }
+            }
+        }
+        audio.addEventListener("canplay", function () {
+            if (autoStart) {
+                audio.play();
+            }
+        });
+        audio.addEventListener("pause", function () {
+            setAudioState(false);
+        });
+        audio.addEventListener("play", function () {
+            setAudioState(true);
+        });
+        audio.addEventListener("playing", function () {
+            setAudioState(true);
+        });
+        audioButton.addEventListener("click", function () {
+            if (isPlayed) {
+                audio.pause();
+            }
+            else {
+                audio.play();
+            }
+        });
+        audio.load();
+        if (autoStart) {
+            audio.play();
+        }
     }
     snow_1.start = start;
 })(snow || (snow = {}));
