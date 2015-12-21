@@ -58,6 +58,9 @@ var may;
                 this.handle.getExtension("WEBGL_color_buffer_float");
                 return this;
             };
+            GL.prototype.getPointSizeRange = function () {
+                return this.handle.getParameter(this.handle.ALIASED_POINT_SIZE_RANGE);
+            };
             GL.prototype.program = function (vertex, fragment) {
                 return new Program(this, vertex, fragment);
             };
@@ -1211,6 +1214,7 @@ var snow;
                 .append("a_radius", radius)
                 .append("a_color", colors)
                 .build().apply();
+            this.uniforms.append("u_max_radius", gl.getPointSizeRange()[1]);
         }
         Lights.prototype.getRandomColor = function () {
             return this.colors[Math.floor(Math.random() * this.colors.length)];
@@ -1291,7 +1295,7 @@ var snow;
     })();
     snow_1.Bump = Bump;
     function start(canvas) {
-        var gl = new GL(canvas), mouse = new Mouse(), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 100), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
+        var gl = new GL(canvas, { antialias: false }), mouse = new Mouse(), background = new Background(gl), snow = new Snow(gl, 600), lights = new Lights(gl, 100), requestAnimationFrame = window.requestAnimationFrame || window["mozRequestAnimationFrame"] ||
             window["webkitRequestAnimationFrame"] || window.msRequestAnimationFrame || setTimeout, startTime = new Date();
         function resize() {
             var displayWidth = window.innerWidth, displayHeight = window.innerHeight;
